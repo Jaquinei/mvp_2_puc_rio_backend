@@ -1,6 +1,6 @@
 #  Production Automation Tool API
 
-Este pequeno projeto faz parte do *MVP* do *Sprint 1* da Disciplina **Desenvolvimento Back-End Avançado**
+Este pequeno projeto faz parte do *MVP* do *Sprint 2* da Disciplina **Desenvolvimento Back-End Avançado**
 
 O objetivo é apresentar o resultado prático obtido após o estudo do conteúdo apresentado ao longo das aulas da disciplina deste Sprint.
 
@@ -12,6 +12,21 @@ Este conteúdo foca na API do Backend.
 
 ---
 ## Como executar
+
+Como iniciar o Frontend usando o docker:
+
+- Certifique-se que o Docker esteja instalado
+- Cria a imagem
+```
+docker build -t backend_puc_rio_sprint_2_mvp .
+```
+- Mapeia a porta local 5002 do host para a porta 5002 do container
+```
+docker run -d -p 5002:5002 backend_puc_rio_sprint_2_mvp
+```
+- Acesse a URL http://localhost:5002 no navegador
+
+# Development environment 
 
 Será necessário ter instaladas todas as bibliotecas Python listadas no arquivo `requirements.txt`.
 
