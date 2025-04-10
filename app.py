@@ -1,6 +1,7 @@
+import os
 from datetime import datetime
 from flask_openapi3 import OpenAPI, Info, Tag
-from flask import redirect
+from flask import redirect, jsonify
 from urllib.parse import unquote
 
 from sqlalchemy.exc import IntegrityError
@@ -9,6 +10,15 @@ from model import Session, Task, Comment
 from logger import logger
 from schemas import *
 from flask_cors import CORS
+
+import requests
+
+notion_database = os.getenv("API_EXTERNA_DATABASE_ID")
+notion_token = os.getenv("API_EXTERNA_TOKEN")
+notion_api_url = f'https://api.notion.com/v1/databases/{notion_database}/query'
+
+#print("INFO: DATABASE ", notion_database)
+#print("INFO: TOKEN ", notion_token)
 
 info = Info(title="Production Automation Tool API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
@@ -19,6 +29,75 @@ home_tag = Tag(name="Documentation", description="Swagger documentation auto gen
 doc_tag = Tag(name="Choose Documentation", description="Choose which type of documentation do you wish to see")
 task_tag = Tag(name="Task", description="Add, visualize and remote the tasks from the database")
 comment_tag = Tag(name="Comment", description="Add a comment to the task added to the database")
+task_from_notion_api_tag = Tag(name="TaskFromNotionAPI", description="Fetch and manage tasks from Notion API")
+
+# Função para buscar dados do Notion
+def get_notion_data():
+    headers = {
+        'Authorization': f'Bearer {notion_token}',
+        'Notion-Version': '2021-05-13',
+        'Content-Type': 'application/json'
+    }
+    if not notion_database or not notion_token:
+        return {
+            "unauthorized" : str('TOKEN and DATABASE info missing')
+            }, 401
+    try:
+        response = requests.post(notion_api_url, headers=headers)
+
+        if response.status_code != 200:
+            raise Exception('Erro ao acessar a API do Notion')
+
+        data = response.json()
+        return data
+    except Exception as e:
+        return {"error": str(e)}
+    
+
+# Endpoint para buscar as tarefas do Notion
+@app.get('/notion-data', tags=[task_from_notion_api_tag])
+def notion_data():
+    """Fetch tasks from the Notion database."""
+    response_body = None
+    status_code = 200
+
+    data = get_notion_data()
+
+    if isinstance(data, tuple):
+        response_body, status_code = data
+
+    # Se houver um erro na requisição, retorna um erro
+    if response_body is not None:
+        if 'error' in response_body:
+            return jsonify(response_body), status_code
+
+        if 'unauthorized' in response_body:
+            return jsonify(response_body), status_code
+
+    results = []
+    for item in data['results']:
+        task = {}
+
+         # Get the page ID and add it to the task dictionary
+        task['page_id'] = item.get('id', None)  # 'id' is the unique page ID
+
+        # Itera sobre todas as propriedades do item
+        for field, value in item['properties'].items():
+            if value.get("type") == "title":
+                task[field] = value.get("title", [{}])[0].get('text', {}).get('content', '')
+            elif value.get("type") == "rich_text":
+                task[field] = value.get("rich_text", [{}])[0].get('text', {}).get('content', '')
+            elif value.get("type") == "number":
+                task[field] = value.get("number", None)
+            elif value.get("type") == "select":
+                task[field] = value.get("select", {}).get('name', None)
+            elif value.get("type") == "date":
+                task[field] = value.get("date", {}).get('start', None)
+            else:
+                task[field] = None  # Para tipos de dados não mapeados diretamente
+        results.append(task)
+
+    return jsonify(results)
 
 
 @app.get('/', tags=[home_tag])

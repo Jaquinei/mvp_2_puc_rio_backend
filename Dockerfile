@@ -7,11 +7,14 @@ WORKDIR /app
 # copia o arquivo para o diretório /app
 COPY requirements.txt .
 
-# instala as dependencias do projeto
+# instala as dependencias do projeto / cmd não bloqueante
 RUN pip install --no-cache-dir  -r requirements.txt
+
+ENV API_EXTERNA_DATABASE_ID=""
+ENV API_EXTERNA_TOKEN=""
 
 # copia todo o código para o diretório /app
 COPY .  .
 
-# executa o servidor 
+# executa o servidor -/ cmd bloqueante
 CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5002"]
