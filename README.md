@@ -6,17 +6,19 @@ Este projeto faz parte do *MVP* do *Sprint 2* da Disciplina **Desenvolvimento Ba
 
 O objetivo é apresentar o resultado prático obtido após o estudo do conteúdo apresentado ao longo das aulas das disciplinas apresentadas durante este Sprint.
 
-O MVP consiste em um Front-End, um Back-End e o acesso a uma API externa.
+O MVP consiste em um *Front-End*, um *Back-End* e o acesso a uma *API* externa.
 
-Este repositorio faz parte do MVP e contem o código para o Back-End e o código usado para acesso a uma API externa. 
+Este repositorio faz parte do MVP e contem o código para o Back-End e o código usado para acesso a uma *API* externa. 
 
-Dentro os cenários apresentados no documento com as instruções sobre os requisitos para o MVP, esse trabalho está enquadrado no *Cenário 1.1*, uma vez que o acesso a API externa está sendo realizado pelo Back-End.
+Dentro os cenários apresentados no documento com as instruções sobre os requisitos para o MVP, esse trabalho está enquadrado no *Cenário 1.1*, uma vez que o acesso a *API* externa está sendo realizado pelo Back-End.
 
 O Back-End disponibilizado neste repositório contem o docker file possibilitando rodar containerizado. 
 
 As instruções para fazer o build da imagem e rodar os container estão na seção [Como iniciar o Back-End usando o docker](#como-iniciar-o-backend-usando-o-docker)
 
-**Este README foca nos detalhes de setup e uso do projeto do Back-End.Para detalhes sobre o projeto do Front-End, acesse o repositório https://github.com/Jaquinei/mvp_2_puc_rio_frontend**
+**Este README foca nos detalhes de setup e uso do projeto do Back-End.**
+
+**Para detalhes sobre o projeto do Front-End, acesse o repositório https://github.com/Jaquinei/mvp_2_puc_rio_frontend**
 
 ## Diagrama
 
@@ -24,9 +26,9 @@ Arquitetura implementada.
 
 ![Diagrama dos componentes do system](./diagram/diagrama_mvp.png)
 
-## Back-End (API)
+## Back-End (*API*)
 
-O Back-End foi feito usando Python: Flask como servidor Web e SQLite como banco de dados. O Backend disponibiliza uma API REST que é consumida pelo Front-End. Esta API possibilita que dados disponíveis no Notion sejam disponibilizados para o Front-End. O Acesso aos dados do Notion é feito pelo Back-End através da API diponibilizada pelo Notion. 
+O Back-End foi feito usando Python: Flask como servidor Web e SQLite como banco de dados. O Backend disponibiliza uma API REST que é consumida pelo Front-End. Esta *API* possibilita que dados disponíveis no Notion sejam disponibilizados para o Front-End. O Acesso aos dados do Notion é feito pelo Back-End através da API diponibilizada pelo Notion. 
 
 O código do Back-End está disponível neste repositorio.
 
@@ -35,7 +37,7 @@ O código do Back-End está disponível neste repositorio.
 ## Como iniciar o Back-End usando o Docker Compose:
 
 - Certifique-se que o Docker e o Docker Compose estejam instalados
-- Accesse o diretório do projeto do Front End:
+- Accesse o diretório do projeto do Front-End:
 Caso esteja no diretório do Back-End, suba um diretorio:
 ``` cd .. ```
 Acesse o diretório do Front End
@@ -50,7 +52,7 @@ Acesse o diretório do Front End
 ```
 - Acesse a URL http://localhost:5002 no navegador para ter acesso ao SWAGGER.
 
-### Como iniciar o Back-End usando o docker:
+## Como iniciar o Back-End usando o docker:
 
 - É possivel fazer o build da imagem de cada repositorio individualmente usando apenas docker. Caso tenha interesse, siga os passos a seguir.
 
@@ -112,12 +114,13 @@ Cadastra um comentário associado a uma task. No Body da requisição é esperad
 ## Acesso a uma API externa
 
 O acesso a API externa está sendo feito utilizando a API da Notion (https://developers.notion.com/)
+
 Para o Back-End acessar a API é necessário utilizar as seguintes informações:
 - Notion API URL
 - Token Notion
 - Database ID
 
-Estas informações (Notion API URL, Token e Database ID) serão disponibilizadas no texto de submissão deste MVP.
+Estas informações (*Notion API URL, Token e Database ID*) serão disponibilizadas no texto de submissão deste MVP.
 
 Foi criada um Notion page com uma lista de Tasks. Essas tasks podem ser incluidas no Prodution Automation Tool. Para acessar a lista do Notion, diretamente, o seguinte link pode ser usado (https://www.notion.so/1ce16f12775a80da8366cacacaa3d3da?v=1ce16f12775a807e846d000c874669ac&pvs=4).
 
