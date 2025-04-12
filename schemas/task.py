@@ -22,15 +22,21 @@ class TaskSchema(BaseModel):
             return None
         return v
 
+class SearchTaskSchemaByID(BaseModel):
+    """ Define who will be the structure that represents the search. It will be
+        done  based on the task id
+    """
+    id: int = 1
+
 class SearchTaskSchemaByName(BaseModel):
     """ Define who will be the structure that represents the search. It will be
-        done oly based on the name of the task
+        done only based on the name of the task
     """
     name: str = "Build"
 
 class SearchTaskSchema(BaseModel):
     """ Define who will be the structure that represents the search. It will be
-        done oly based on the name of the task
+        done only based on the name of the task
     """
     id: int = 1
 
@@ -48,6 +54,7 @@ def show_tasks(tasks: List[Task]):
     result = []
     for task in tasks:
         result.append({
+            "id" : task.id,
             "name": task.name,
             "task_type": task.task_type,
             "product": task.product,

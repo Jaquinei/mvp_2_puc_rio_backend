@@ -12,7 +12,7 @@ class Task(Base):
     id = Column("pk_task", Integer, primary_key=True)
     name = Column(String(140), unique=True)    
     task_type = Column(Integer)
-    product = Column(String(140), unique=True)
+    product = Column(String(140))
     priority = Column(SmallInteger)
     insertion_date = Column(DateTime, default=datetime.now())
     start_date = Column(DateTime, nullable=True)
@@ -58,7 +58,7 @@ class Task(Base):
             self.start_date = start_date
 
         if end_date:
-            self.start_date = end_date
+            self.end_date = end_date
 
 
     def add_comment(self, comment:Comment):

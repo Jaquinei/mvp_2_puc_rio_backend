@@ -1,42 +1,67 @@
-#  Production Automation Tool Backend
+#  Production Automation Tool Back-End
 
 **Aluno: Jaquinei de Oliveira**
 
-Este projeto faz parte do *MVP* do *Sprint 2* da Disciplina **Desenvolvimento Back-End Avançado**
+Este projeto faz parte do *MVP* do *Sprint 2* da Disciplina **Desenvolvimento Back-End Avançado**.
 
-O objetivo é apresentar o resultado prático obtido após o estudo do conteúdo apresentado ao longo das aulas da disciplinas apresentadas neste Sprint.
+O objetivo é apresentar o resultado prático obtido após o estudo do conteúdo apresentado ao longo das aulas das disciplinas apresentadas durante este Sprint.
 
-O MVP consiste em um Frontend, um Backend e acesso a uma API externa.
+O MVP consiste em um Front-End, um Back-End e o acesso a uma API externa.
 
-Este repositorio faz parte do MVP e contem o código para o Backend e o código usado para cesso a uma API externa. 
-Dentro os cenários apresentados no documento com as instruções sobre os requisitos para o MVP, esse trabalho está enquadrado no Cenário 1.1, uma vez que o acesso a API externa está sendo realizado pelo Backend.
+Este repositorio faz parte do MVP e contem o código para o Back-End e o código usado para acesso a uma API externa. 
 
-O Backend disponibilizado neste repositório contem o dockerFile possibilitando rodar containerizado. As instruções para fazer o build da imagem e rodar os container estão na seção [Como iniciar o Backend usando o docker](#como-iniciar-o-backend-usando-o-docker)
+Dentro os cenários apresentados no documento com as instruções sobre os requisitos para o MVP, esse trabalho está enquadrado no *Cenário 1.1*, uma vez que o acesso a API externa está sendo realizado pelo Back-End.
 
-**Este conteúdo foca nos detalhes de uso do projeto do Backend.**
+O Back-End disponibilizado neste repositório contem o docker file possibilitando rodar containerizado. 
 
-## Fluxograma
+As instruções para fazer o build da imagem e rodar os container estão na seção [Como iniciar o Back-End usando o docker](#como-iniciar-o-backend-usando-o-docker)
+
+**Este README foca nos detalhes de setup e uso do projeto do Back-End.Para detalhes sobre o projeto do Front-End, acesse o repositório https://github.com/Jaquinei/mvp_2_puc_rio_frontend**
+
+## Diagrama
 
 Arquitetura implementada.
 
-TODO: Adicionar fluxograma aqui
+![Diagrama dos componentes do system](./diagram/diagrama_mvp.png)
 
-## Backend (API)
+## Back-End (API)
 
-O Backend foi feito usando Python: flask como servidor web e sqlite como banco de dados. O código do Backend está disponível neste repositorio.
+O Back-End foi feito usando Python: Flask como servidor Web e SQLite como banco de dados. O Backend disponibiliza uma API REST que é consumida pelo Front-End. Esta API possibilita que dados disponíveis no Notion sejam disponibilizados para o Front-End. O Acesso aos dados do Notion é feito pelo Back-End através da API diponibilizada pelo Notion. 
 
-### Como iniciar o Backend usando o docker:
+O código do Back-End está disponível neste repositorio.
 
-Como iniciar o Backend usando o docker:
+# Executando o projeto
 
-Certifique-se que o Docker esteja instalado
+## Como iniciar o Back-End usando o Docker Compose:
 
-Cria a imagem
+- Certifique-se que o Docker e o Docker Compose estejam instalados
+- Accesse o diretório do projeto do Front End:
+Caso esteja no diretório do Back-End, suba um diretorio:
+``` cd .. ```
+Acesse o diretório do Front End
+``` cd  mvp_2_puc_rio_frontend ```
+-  Faça o build das imagens
+```
+`docker-compose build`
+```
+- Inicie os containers
+```
+`docker-compose up `
+```
+- Acesse a URL http://localhost:5002 no navegador para ter acesso ao SWAGGER.
+
+### Como iniciar o Back-End usando o docker:
+
+- É possivel fazer o build da imagem de cada repositorio individualmente usando apenas docker. Caso tenha interesse, siga os passos a seguir.
+
+- Certifique-se que o Docker esteja instalado
+
+- Crie a imagem
 
 ```
 docker build -t backend_puc_rio_sprint_2_mvp .
 ```
-- Mapeia a porta local 5002 do host para a porta 5002 do container
+- Mapeie a porta local 5002 do host para a porta 5002 do container
 ```
 docker run -e API_EXTERNA_DATABASE_ID=XXXXXXXXXXX -e API_EXTERNA_TOKEN=YYYYYYYYYYYY  -d -p 5002:5002 backend_puc_rio_sprint_2_mvp
 ```
@@ -44,45 +69,50 @@ docker run -e API_EXTERNA_DATABASE_ID=XXXXXXXXXXX -e API_EXTERNA_TOKEN=YYYYYYYYY
 
 # Visão geral dos módulos do MVP
 
-## Frontend (Interface)
+## Front-End (Interface)
 
-O Frontend foi desenvolvido usando HTML, CSS e JavaScript e Bootstrap. Pode ser usado independentemente do Backend, mas para persistir os dados é necessário que o Backend esteja rodando.
+O Front-End foi desenvolvido usando *HTML*, *CSS* e *JavaScript* e *Bootstrap*. Pode ser usado independentemente do Back-End, mas para persistir os dados é necessário que o Back-End esteja rodando.
 
-O código do FrondEnd está disponível em outro repositório.
+O código do Front-End está disponível em outro repositório. Para detalhes sobre o projeto do Front-End, acesse o repositório https://github.com/Jaquinei/mvp_2_puc_rio_frontend
 
-## Backend (API)
+## Back-End (API)
 
-A REST API é disponibilizada pelo BackEnd e apresenta as seguintes rotas:
+A REST API é disponibilizada pelo Back-End e apresenta as seguintes rotas:
 
     GET /
 Redireciona para o Swagger
 
     GET /docs
-Swagger
+Swagger - Redireciona para o endpoint do Swagger, que permite visualizar a documentação da API em diferentes formatos.
 
     GET /tasks
-Retorna a lista de tasks do database
+Retorna a lista de tasks presentes no banco de dados do back-end.
 
     GET /notion-data
-Acesso a API externa do Notion. (requer DATABASE_ID e TOKEN para acessar)
+Acessa dados de uma API externa do Notion.
+Requisitos: DATABASE_ID e TOKEN devem ser fornecidos.
 
-    DELETE /task{name}
+    DELETE /task?name={task_name}
+Remove uma task utilizando o nome da task como parâmetro de query (name).
 
-    GET /task{task_id}
+    GET /task?task_id={id}
+Obtem os dados de uma task específica, usando o identificador task_id como parametro
 
-    OST /task{name, priority, product, start_date, task_type, end_date}
+    PUT /task/{task_id}
+Atualiza os dados de uma task usando o identificador task_id como parametro da roda.
+No Body da requisição é esperado objeto JSON com os campos a serem atualizados.
+
+    POST /task{name, priority,product, start_date, task_type, end_date}
 cadastra uma task
 
     POST /comment{task_id, text}
-cadastra um comentario associado a task
+Cadastra um comentário associado a uma task. No Body da requisição é esperado o identificador da task (task_id) e o comentário em formato string.
 
-
-Desenvolvimento Back-End Avançado
 
 ## Acesso a uma API externa
 
 O acesso a API externa está sendo feito utilizando a API da Notion (https://developers.notion.com/)
-Para o backend acessar a API é necessário utilizar as seguintes informações:
+Para o Back-End acessar a API é necessário utilizar as seguintes informações:
 - Notion API URL
 - Token Notion
 - Database ID
@@ -94,7 +124,7 @@ Foi criada um Notion page com uma lista de Tasks. Essas tasks podem ser incluida
 
 # Development environment 
 
-## Como executar o Backend
+## Como executar o Back-End
 
 ### Dev
 Será necessário ter instaladas todas as bibliotecas Python listadas no arquivo `requirements.txt`.
@@ -124,15 +154,27 @@ Installe todas as dependencias necessárias para rodar o projeto
 ```
 > Este comando instala as dependências/bibliotecas, descritas no arquivo `requirements.txt`.
 
-Para executar o Backend que expõe a API:
+Para executar o Back-End que expõe a API:
 
 ```
 (env)$ flask run --host 0.0.0.0 --port 5002
 ```
-> A porta **5002** está hardcode no projeto do Frontend.
-> Caso queira alterar a porta, ajuste a variável *SERVER_URL* no arquivo *scripts.js* do projeto do Frontend.
+> A porta **5002** está hardcode no projeto do Front-End.
+> Caso queira alterar a porta, ajuste a variável *SERVER_URL* no arquivo *scripts.js* do projeto do Front-End.
 
 Abra o link [http://localhost:5002](http://localhost:5002/) no navegador para verificar o status da API em execução.
+
+External API access
+
+Para acessar o database do Notion, é possível usar o seguinte comando:
+
+```
+curl -X POST \
+'https://api.notion.com/v1/databases/<database>/query' \
+-H 'Authorization: Bearer <token>' \
+-H 'Notion-Version: 2021-05-13' \
+-H 'Content-Type: application/json'
+```
 
 ### Docker
 

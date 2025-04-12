@@ -84,9 +84,19 @@ def notion_data():
         # Itera sobre todas as propriedades do item
         for field, value in item['properties'].items():
             if value.get("type") == "title":
-                task[field] = value.get("title", [{}])[0].get('text', {}).get('content', '')
+                # Check if the title list is non-empty
+                title = value.get("title", [])
+                if title:
+                    task[field] = title[0].get('text', {}).get('content', '')
+                else:
+                    task[field] = ''  # If title list is empty, assign empty string
             elif value.get("type") == "rich_text":
-                task[field] = value.get("rich_text", [{}])[0].get('text', {}).get('content', '')
+                rich_text = value.get("rich_text", [])
+                # Check if the rich_text list is not empty
+                if rich_text:
+                    task[field] = rich_text[0].get('text', {}).get('content', '')
+                else:
+                    task[field] = ''  # If the list is empty, set the field as an empty string
             elif value.get("type") == "number":
                 task[field] = value.get("number", None)
             elif value.get("type") == "select":
@@ -114,7 +124,7 @@ def choose_documentation():
     return redirect('/openapi')
 
 
-@app.post('/task', tags=[task_tag],
+@app.post('/task', tags=[task_tag], 
           responses={"200": TaskViewSchema, "409": ErrorSchema, "400": ErrorSchema})
 def add_task(form: TaskSchema):
     """Add a new task to the database
@@ -128,8 +138,19 @@ def add_task(form: TaskSchema):
         priority=form.priority,
         insertion_date=datetime.now(),
         start_date=form.start_date if form.start_date else None,
-        end_date=form.end_date if form.end_date else None)
+        end_date=form.end_date if form.end_date else None
+        )
     logger.debug(f"Adding task name: '{task.name}'")
+
+    # creating the database connection
+    session = Session()
+
+    # 💥 Check if a task with the same name already exists
+    existing = session.query(Task).filter_by(name=form.name).first()
+    if existing:
+        logger.debug(f"Task name already exists : '{task.name}'")
+        return jsonify({"error": "Task name already exists."}), 409
+    
     try:
         # creating a session with the database
         session = Session()
@@ -142,13 +163,13 @@ def add_task(form: TaskSchema):
 
     except IntegrityError as e:
         # como a duplicidade do nome é a provável razão do IntegrityError
-        error_msg = "Task name already saved in the database :/"
+        error_msg = "Task name already saved in the database"
         logger.warning(f"Error while adding the product '{task.name}', {error_msg}")
         return {"message": error_msg}, 409
 
     except Exception as e:
         # caso um erro fora do previsto
-        error_msg = "Was not possible to save the new item :/"
+        error_msg = "Was not possible to save the new item"
         logger.warning(f"Error while adding the product '{task.name}', {error_msg}")
         return {"message": error_msg}, 400
 
@@ -201,14 +222,14 @@ def get_task(query: SearchTaskSchema):
         return show_task(task), 200
 
 
-@app.delete('/task', tags=[task_tag],
+@app.delete('/task/name', tags=[task_tag],
             responses={"200": TaskDelSchema, "404": ErrorSchema})
-def del_task(query: SearchTaskSchemaByName):
+def del_task_by_name(query: SearchTaskSchemaByName):
     """Delete a task using the name of the task informed
 
     Return a message confirming the deletion.
     """
-    task_name = unquote(unquote(query.name))
+    task_name = unquote(query.name)
     print(task_name)
     logger.debug(f"Removing data from the task #{task_name}")
     # create the database connection
@@ -227,6 +248,78 @@ def del_task(query: SearchTaskSchemaByName):
         logger.warning(f"Error while removing the product #'{task_name}', {error_msg}")
         return {"message": error_msg}, 404
 
+@app.delete('/task/id', tags=[task_tag],
+            responses={"200": TaskDelSchema, "404": ErrorSchema})
+def del_task_by_id(query: SearchTaskSchema):
+    """Delete a task using the task id informed
+
+    Return a message confirming the deletion.
+    """
+    task_id = query.id
+    print(task_id)
+    logger.debug(f"Removing data from the task #{task_id}")
+    # create the database connection
+    session = Session()
+    # performing the delete
+    count = session.query(Task).filter(Task.id == task_id).delete()
+    session.commit()
+
+    if count:
+        # return the message confirmation message representation
+        logger.debug(f"Removing task #{task_id}")
+        return {"message": "Task removed ", "name": task_id}
+    else:
+        # if the product was not found
+        error_msg = "Task not found in the database :/"
+        logger.warning(f"Error while removing the product #'{task_id}', {error_msg}")
+        return {"message": error_msg}, 404
+
+
+@app.put('/task/<int:id>', tags=[task_tag], 
+         responses={"200": TaskViewSchema, "404": ErrorSchema, "400": ErrorSchema})
+def update_task(id: int, form: TaskSchema):
+    """Update an existing task by its ID
+
+    Returns the updated task if successful.
+    """
+    logger.debug(f"Updating task with ID: {id}")
+
+    session = Session()
+    task = session.query(Task).filter_by(id=id).first()
+
+    if not task:
+        logger.warning(f"Task with ID '{id}' not found")
+        return {"message": "Task not found"}, 404
+
+    # Check if new name is already taken by another task
+    if form.name != task.name:
+        name_exists = session.query(Task).filter(Task.name == form.name).first()
+        if name_exists:
+            logger.warning(f"Task name '{form.name}' already exists")
+            return {"message": "Task name already exists"}, 409
+
+    try:
+        # Update fields
+        task.name = form.name
+        task.task_type = form.task_type
+        task.product = form.product
+        task.priority = form.priority
+        task.start_date = form.start_date if form.start_date else None
+        task.end_date = form.end_date if form.end_date else None
+
+        session.commit()
+        logger.debug(f"Task with ID '{id}' successfully updated")
+        return show_task(task), 200
+
+    except IntegrityError:
+        session.rollback()
+        logger.error(f"IntegrityError while updating task with ID '{id}'")
+        return {"message": "Could not update task due to database constraints"}, 400
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Unexpected error: {e}")
+        return {"message": "An unexpected error occurred"}, 400
 
 @app.post('/comment', tags=[comment_tag],
           responses={"200": TaskViewSchema, "404": ErrorSchema})
