@@ -1,15 +1,16 @@
 import os
 from datetime import datetime
 from flask_openapi3 import OpenAPI, Info, Tag
-from flask import redirect, jsonify
+from flask import redirect, jsonify, request
 from urllib.parse import unquote
+from pydantic import ValidationError
 
 from sqlalchemy.exc import IntegrityError
 
 from model import Session, Task, Comment
 from logger import logger
 from schemas import *
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 import requests
 
@@ -22,7 +23,8 @@ notion_api_url = f'https://api.notion.com/v1/databases/{notion_database}/query'
 
 info = Info(title="Production Automation Tool API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
-CORS(app)
+CORS(app, resources={r"/task/*": {"origins": ["http://localhost:8080", "http://127.0.0.1:8080"]}},
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # definindo tags
 home_tag = Tag(name="Documentation", description="Swagger documentation auto generated")
@@ -56,12 +58,19 @@ def get_notion_data():
 
 # Endpoint para buscar as tarefas do Notion
 @app.get('/notion-data', tags=[task_from_notion_api_tag])
+@cross_origin(
+    origins=['http://localhost:8080', 'http://127.0.0.1:8080'],
+    methods=["GET", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def notion_data():
     """Fetch tasks from the Notion database."""
     response_body = None
     status_code = 200
 
     data = get_notion_data()
+
+    #print(data)
 
     if isinstance(data, tuple):
         response_body, status_code = data
@@ -74,17 +83,24 @@ def notion_data():
         if 'unauthorized' in response_body:
             return jsonify(response_body), status_code
 
+    if 'results' not in data:
+        return {"message": "Missing 'results' in response data"}, 500
+    
+    #results = data.get('results', [])
     results = []
     for item in data['results']:
         task = {}
 
          # Get the page ID and add it to the task dictionary
         task['page_id'] = item.get('id', None)  # 'id' is the unique page ID
+        print(task)
+        # Safely access 'properties' in case it's missing
+        properties = item.get('properties', {})
 
-        # Itera sobre todas as propriedades do item
-        for field, value in item['properties'].items():
+        # Iterate over all properties of the item
+        for field, value in properties.items():
+            # Check the type of the property and process accordingly
             if value.get("type") == "title":
-                # Check if the title list is non-empty
                 title = value.get("title", [])
                 if title:
                     task[field] = title[0].get('text', {}).get('content', '')
@@ -92,7 +108,6 @@ def notion_data():
                     task[field] = ''  # If title list is empty, assign empty string
             elif value.get("type") == "rich_text":
                 rich_text = value.get("rich_text", [])
-                # Check if the rich_text list is not empty
                 if rich_text:
                     task[field] = rich_text[0].get('text', {}).get('content', '')
                 else:
@@ -104,7 +119,8 @@ def notion_data():
             elif value.get("type") == "date":
                 task[field] = value.get("date", {}).get('start', None)
             else:
-                task[field] = None  # Para tipos de dados não mapeados diretamente
+                task[field] = None  # For types not directly mapped
+
         results.append(task)
 
     return jsonify(results)
@@ -250,6 +266,11 @@ def del_task_by_name(query: SearchTaskSchemaByName):
 
 @app.delete('/task/id', tags=[task_tag],
             responses={"200": TaskDelSchema, "404": ErrorSchema})
+@cross_origin(
+    origins=['http://localhost:8080', 'http://127.0.0.1:8080'],
+    methods=["DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
 def del_task_by_id(query: SearchTaskSchema):
     """Delete a task using the task id informed
 
@@ -274,15 +295,34 @@ def del_task_by_id(query: SearchTaskSchema):
         logger.warning(f"Error while removing the product #'{task_id}', {error_msg}")
         return {"message": error_msg}, 404
 
-
-@app.put('/task/<int:id>', tags=[task_tag], 
-         responses={"200": TaskViewSchema, "404": ErrorSchema, "400": ErrorSchema})
-def update_task(id: int, form: TaskSchema):
+#@app.put('/task/<int:id>',  tags=[task_tag], responses={ "200": TaskUpdateSchema,              "404": ErrorSchema,              "400": ErrorSchema       }        )
+@app.route('/task/<int:id>', methods=["PUT", "OPTIONS"])
+@cross_origin(
+    origins=['http://localhost:8080', 'http://127.0.0.1:8080'], 
+    methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"]
+)
+def update_task(id: int):
     """Update an existing task by its ID
 
     Returns the updated task if successful.
     """
     logger.debug(f"Updating task with ID: {id}")
+    if request.method == "OPTIONS":
+        return '', 200
+
+    try:
+        # Parse the body using Pydantic manually
+        data = request.json
+        body = TaskSchema(**data)
+    except ValidationError as e:
+        return {"message": "Validation failed", "errors": e.errors()}, 400
+    except Exception as e:
+        return {"message": "Invalid request body", "error": str(e)}, 400
+
+    # Validation for required fields could go here
+    if not body:
+        return {"message": "Missing required fields"}, 400
 
     session = Session()
     task = session.query(Task).filter_by(id=id).first()
@@ -292,20 +332,20 @@ def update_task(id: int, form: TaskSchema):
         return {"message": "Task not found"}, 404
 
     # Check if new name is already taken by another task
-    if form.name != task.name:
-        name_exists = session.query(Task).filter(Task.name == form.name).first()
+    if body.name != task.name:
+        name_exists = session.query(Task).filter(Task.name == body.name).first()
         if name_exists:
-            logger.warning(f"Task name '{form.name}' already exists")
+            logger.warning(f"Task name '{body.name}' already exists")
             return {"message": "Task name already exists"}, 409
 
     try:
         # Update fields
-        task.name = form.name
-        task.task_type = form.task_type
-        task.product = form.product
-        task.priority = form.priority
-        task.start_date = form.start_date if form.start_date else None
-        task.end_date = form.end_date if form.end_date else None
+        task.name = body.name
+        task.task_type = body.task_type
+        task.product = body.product
+        task.priority = body.priority
+        task.start_date = body.start_date if body.start_date else None
+        task.end_date = body.end_date if body.end_date else None
 
         session.commit()
         logger.debug(f"Task with ID '{id}' successfully updated")

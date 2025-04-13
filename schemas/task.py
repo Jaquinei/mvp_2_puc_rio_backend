@@ -22,6 +22,25 @@ class TaskSchema(BaseModel):
             return None
         return v
 
+
+class TaskUpdateSchema(BaseModel):
+    """ Define how the task will be updated: task + comments
+    """
+    name: str = "Build"
+    task_type: int = 12
+    product: int = 12
+    priority: int = 1
+    start_date: datetime
+    end_date: datetime
+    qtde_comments: int = 1
+    comments:List[CommentSchema]
+
+    @validator('start_date', 'end_date', pre=True)
+    def validate_date_field(cls, v):
+        if v == "":
+            return None
+        return v
+
 class SearchTaskSchemaByID(BaseModel):
     """ Define who will be the structure that represents the search. It will be
         done  based on the task id
@@ -78,7 +97,6 @@ class TaskViewSchema(BaseModel):
     end_date: datetime
     qtde_comments: int = 1
     comments:List[CommentSchema]
-
 
 class TaskDelSchema(BaseModel):
     """ Define how will be the structured data returned after a delete
