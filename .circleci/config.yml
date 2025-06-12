@@ -1,0 +1,21 @@
+version: 2.1
+jobs:
+  build:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - checkout
+      # Add your existing build steps here
+      - run:
+          name: Trigger Frontend Pipeline
+          command: |
+            curl -X POST \
+              -H "Circle-Token: ${CIRCLECI_API_TOKEN}" \
+              -H 'Content-Type: application/json' \
+              -d '{"branch":"main"}' \
+              https://circleci.com/api/v2/project/gh/Jaquinei/mvp_2_puc_rio_frontend/pipeline
+workflows:
+  version: 2
+  build_and_trigger_frontend:
+    jobs:
+      - build
